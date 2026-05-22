@@ -11,9 +11,9 @@ from starlette.types import ASGIApp
 # (path_prefix, max_requests, window_seconds)
 # More restrictive rules come first; first match wins.
 _RULES: list[tuple[str, int, int]] = [
-    ("/auth/",    15,  60),   # auth endpoints: 15 req/min
-    ("/preview",  30,  60),   # public preview: 30 req/min
-    ("/",        200, 60),    # everything else: 200 req/min
+    ("/auth/",    15,    60),   # auth endpoints: 15 req/min
+    ("/preview",  10,  3600),   # public preview: 10 req/hour per IP
+    ("/",         60,    60),   # everything else: 60 req/min per IP
 ]
 
 

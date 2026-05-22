@@ -112,8 +112,13 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/10 text-center py-8 text-slate-500 text-sm">
-        © 2026 Tech Zi Wei. Made with care for seekers.
+      <footer className="border-t border-white/10 text-center py-8 text-slate-500 text-sm space-y-3">
+        <div className="flex items-center justify-center gap-6">
+          <Link href="/legal/privacy" className="hover:text-slate-300 transition-colors">Privacy Policy</Link>
+          <Link href="/legal/terms" className="hover:text-slate-300 transition-colors">Terms of Service</Link>
+          <Link href="/legal/disclaimer" className="hover:text-slate-300 transition-colors">Disclaimer</Link>
+        </div>
+        <p>© 2026 Tech Zi Wei. For self-reflection purposes only — not professional advice.</p>
       </footer>
     </div>
   );
