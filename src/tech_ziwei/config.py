@@ -18,8 +18,13 @@ class Settings(BaseSettings):
     # Redis
     redis_url: str = "redis://localhost:6379/0"
 
+    # Stripe
+    stripe_secret_key: str = ""
+    stripe_webhook_secret: str = ""
+
     # App
     environment: str = "development"
+    frontend_url: str = "http://localhost:3000"
 
     @property
     def is_production(self) -> bool:

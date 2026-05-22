@@ -1,5 +1,7 @@
 import type {
-  ChartRequest, ChartResponse, ReadingResponse, ReadingType,
+  ChartRequest, ChartResponse, CheckoutSessionResponse,
+  PreviewRequest, PreviewResponse,
+  ReadingResponse, ReadingType,
   TokenResponse, UserResponse,
 } from "./types";
 
@@ -65,6 +67,24 @@ export const api = {
     get:  (id: string) => request<ChartResponse>(`/charts/${id}`),
     create: (payload: ChartRequest) =>
       request<ChartResponse>("/charts", { method: "POST", body: JSON.stringify(payload) }),
+    delete: (id: string) =>
+      request<void>(`/charts/${id}`, { method: "DELETE" }),
+    downloadPdf: async (chartId: string): Promise<void> => {
+      const tok = token();
+      const res = await fetch(`${BASE}/charts/${chartId}/pdf`, {
+        headers: tok ? { Authorization: `Bearer ${tok}` } : {},
+      });
+      if (!res.ok) throw new Error("Download failed");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `ziwei-${chartId.slice(0, 8)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    },
   },
 
   readings: {
@@ -72,5 +92,17 @@ export const api = {
       request<ReadingResponse>(`/charts/${chartId}/report?reading_type=${type}`, {
         method: "POST",
       }),
+    get: (chartId: string, type: ReadingType) =>
+      request<ReadingResponse>(`/charts/${chartId}/readings/${type}`),
+  },
+
+  payments: {
+    createCheckoutSession: () =>
+      request<CheckoutSessionResponse>("/payments/checkout-session", { method: "POST" }),
+  },
+
+  preview: {
+    calculate: (payload: PreviewRequest) =>
+      request<PreviewResponse>("/preview", { method: "POST", body: JSON.stringify(payload) }),
   },
 };

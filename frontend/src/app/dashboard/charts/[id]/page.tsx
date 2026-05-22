@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Download, Loader2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { BRANCHES, STEMS, WU_XING_JU_LABELS, READING_TYPE_LABELS } from "@/lib/constants";
 import { PalaceGrid } from "@/components/chart/PalaceGrid";
 import { ReadingView } from "@/components/report/ReadingView";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ChartResponse, ReadingType } from "@/lib/types";
 
 const TABS: { key: ReadingType; label: string }[] = [
@@ -20,9 +21,38 @@ const TABS: { key: ReadingType; label: string }[] = [
 export default function ChartDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const [chart, setChart] = useState<ChartResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<ReadingType>("core");
+
+  const isPaid = user?.subscription_tier !== "free";
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  async function handleDelete() {
+    if (!chart) return;
+    if (!window.confirm("Delete this chart? This cannot be undone.")) return;
+    setDeleteLoading(true);
+    try {
+      await api.charts.delete(chart.id);
+      router.push("/dashboard");
+    } catch {
+      setDeleteLoading(false);
+    }
+  }
+
+  async function handleDownloadPdf() {
+    if (!chart) return;
+    setPdfLoading(true);
+    try {
+      await api.charts.downloadPdf(chart.id);
+    } catch {
+      // silent — browser console will show fetch error if any
+    } finally {
+      setPdfLoading(false);
+    }
+  }
 
   useEffect(() => {
     api.charts.get(id)
@@ -51,13 +81,39 @@ export default function ChartDetailPage() {
         <Link href="/dashboard" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-slate-600 mb-4">
           <ArrowLeft className="w-4 h-4" /> Back to charts
         </Link>
-        <div className="flex items-baseline gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">
-            {yearGanzhi} 年 · {ju}
-          </h1>
-          <span className={`text-xs px-2 py-0.5 rounded-full ${chart.is_male ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>
-            {chart.is_male ? "Male" : "Female"}
-          </span>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-2xl font-bold text-slate-900">
+              {yearGanzhi} 年 · {ju}
+            </h1>
+            <span className={`text-xs px-2 py-0.5 rounded-full ${chart.is_male ? "bg-blue-50 text-blue-600" : "bg-pink-50 text-pink-600"}`}>
+              {chart.is_male ? "Male" : "Female"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isPaid && (
+              <button
+                onClick={handleDownloadPdf}
+                disabled={pdfLoading}
+                className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 border border-slate-200 hover:border-violet-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {pdfLoading
+                  ? <Loader2 className="w-4 h-4 animate-spin" />
+                  : <Download className="w-4 h-4" />}
+                Download PDF
+              </button>
+            )}
+            <button
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {deleteLoading
+                ? <Loader2 className="w-4 h-4 animate-spin" />
+                : <Trash2 className="w-4 h-4" />}
+              Delete
+            </button>
+          </div>
         </div>
         <p className="text-slate-400 text-sm mt-1">
           {chart.gregorian_date} · 農曆 {chart.lunar_year}/{chart.lunar_month}/{chart.lunar_day}
@@ -111,7 +167,7 @@ export default function ChartDetailPage() {
 
         {/* Reading content */}
         <div className="p-6">
-          <ReadingView chartId={chart.id} readingType={activeTab} />
+          <ReadingView chartId={chart.id} readingType={activeTab} isPaid={isPaid} />
         </div>
       </div>
     </div>

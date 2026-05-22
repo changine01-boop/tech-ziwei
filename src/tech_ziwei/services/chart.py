@@ -66,3 +66,12 @@ async def list_charts(db: AsyncSession, user_id: str) -> list[Chart]:
         select(Chart).where(Chart.user_id == user_id).order_by(Chart.created_at.desc())
     )
     return list(result.scalars().all())
+
+
+async def delete_chart(db: AsyncSession, chart_id: str, user_id: str) -> bool:
+    chart = await get_chart(db, chart_id, user_id)
+    if chart is None:
+        return False
+    await db.delete(chart)
+    await db.commit()
+    return True

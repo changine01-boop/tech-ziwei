@@ -56,3 +56,25 @@ export interface ReadingResponse {
   created_at: string;
   completed_at: string | null;
 }
+
+export interface CheckoutSessionResponse {
+  url: string;
+}
+
+export interface PreviewRequest {
+  gregorian_date: string;
+  birth_time: string;
+  is_male: boolean;
+  timezone_offset: number;
+}
+
+export interface PreviewResponse {
+  ming_branch: number;
+  ming_palace_name: string;
+  ming_ganzhi: string;
+  main_stars: string[];
+  wu_xing_ju: number;
+  wu_xing_ju_label: string;
+  year_ganzhi: string;
+  hook: string;
+}

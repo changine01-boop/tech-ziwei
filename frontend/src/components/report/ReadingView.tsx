@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, Lock, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
 import { READING_TYPE_LABELS } from "@/lib/constants";
 import type { ReadingResponse, ReadingType } from "@/lib/types";
@@ -9,11 +9,54 @@ import type { ReadingResponse, ReadingType } from "@/lib/types";
 interface Props {
   chartId: string;
   readingType: ReadingType;
+  isPaid: boolean;
 }
 
 const POLL_INTERVAL_MS = 3000;
 
-export function ReadingView({ chartId, readingType }: Props) {
+function PaywallBanner() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleUnlock() {
+    setLoading(true);
+    setError("");
+    try {
+      const { url } = await api.payments.createCheckoutSession();
+      window.location.href = url;
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="text-center py-12 px-6">
+      <div className="w-14 h-14 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-5">
+        <Lock className="w-6 h-6 text-violet-500" />
+      </div>
+      <h3 className="text-lg font-semibold text-slate-800 mb-2">
+        Unlock your full reading
+      </h3>
+      <p className="text-slate-500 text-sm mb-6 max-w-sm mx-auto">
+        Get AI-generated psychological insights for all four areas — personality,
+        relationships, career, and annual themes — for every chart you create.
+      </p>
+      <button
+        onClick={handleUnlock}
+        disabled={loading}
+        className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white font-semibold px-6 py-3 rounded-xl transition-colors shadow-md shadow-violet-200"
+      >
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading ? "Redirecting…" : "Unlock full report — $9.99"}
+      </button>
+      <p className="text-xs text-slate-400 mt-3">One-time payment · Secure checkout via Stripe</p>
+      {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+    </div>
+  );
+}
+
+export function ReadingView({ chartId, readingType, isPaid }: Props) {
   const [reading, setReading] = useState<ReadingResponse | null>(null);
   const [error, setError] = useState("");
   const [requesting, setRequesting] = useState(false);
@@ -31,14 +74,13 @@ export function ReadingView({ chartId, readingType }: Props) {
     }
   }, [chartId, readingType]);
 
-  // Poll while status is pending/generating
   useEffect(() => {
     if (!reading) return;
     if (reading.status === "complete" || reading.status === "failed") return;
 
     const id = setInterval(async () => {
       try {
-        const refreshed = await api.readings.request(chartId, readingType);
+        const refreshed = await api.readings.get(chartId, readingType);
         setReading(refreshed);
       } catch {
         // ignore poll errors
@@ -47,6 +89,10 @@ export function ReadingView({ chartId, readingType }: Props) {
 
     return () => clearInterval(id);
   }, [reading, chartId, readingType]);
+
+  if (!isPaid) {
+    return <PaywallBanner />;
+  }
 
   if (!reading) {
     return (

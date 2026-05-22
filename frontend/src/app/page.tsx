@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, Brain, BarChart3, ArrowRight } from "lucide-react";
+import { Star, Brain, BarChart3, ArrowRight, Sparkles } from "lucide-react";
 
 const FEATURES = [
   {
@@ -54,12 +54,21 @@ export default function LandingPage() {
           astrology system — into the language of contemporary psychology.
           Discover your patterns, not your fate.
         </p>
-        <Link
-          href="/register"
-          className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors shadow-lg shadow-violet-900/50"
-        >
-          Generate your chart <ArrowRight className="w-5 h-5" />
-        </Link>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/register"
+            className="inline-flex items-center gap-2 bg-violet-600 hover:bg-violet-500 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors shadow-lg shadow-violet-900/50"
+          >
+            Get started <ArrowRight className="w-5 h-5" />
+          </Link>
+          <Link
+            href="/try"
+            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/15 border border-white/20 text-white px-8 py-4 rounded-xl font-semibold text-lg transition-colors backdrop-blur-sm"
+          >
+            <Sparkles className="w-5 h-5 text-violet-300" />
+            Try it free
+          </Link>
+        </div>
       </section>
 
       {/* Features */}
