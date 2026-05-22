@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:3000"
 
     @property
+    def async_database_url(self) -> str:
+        """Always returns a postgresql+asyncpg:// URL for SQLAlchemy async engine."""
+        url = self.database_url
+        for prefix in ("postgres://", "postgresql+psycopg2://", "postgresql://"):
+            if url.startswith(prefix):
+                return "postgresql+asyncpg://" + url[len(prefix):]
+        return url
+
+    @property
     def is_production(self) -> bool:
         return self.environment == "production"
 

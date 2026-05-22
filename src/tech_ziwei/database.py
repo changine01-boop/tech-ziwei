@@ -5,7 +5,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from tech_ziwei.config import settings
 
-engine = create_async_engine(settings.database_url, echo=not settings.is_production)
+engine = create_async_engine(settings.async_database_url, echo=not settings.is_production)
 AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
