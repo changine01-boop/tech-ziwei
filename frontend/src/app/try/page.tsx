@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Loader2, Sparkles, Star } from "lucide-react";
 import { api } from "@/lib/api";
+import { RateLimitError, NetworkError } from "@/lib/errors";
 import { BRANCHES, STEMS, WU_XING_JU_LABELS, ZIWEI_GROUP, TIANFU_GROUP } from "@/lib/constants";
 import type { PreviewResponse } from "@/lib/types";
 
@@ -164,7 +165,13 @@ export default function TryPage() {
       });
       setResult(data);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Calculation failed. Please check your input.");
+      if (err instanceof RateLimitError) {
+        setError("You've made too many preview requests. Please wait a minute and try again.");
+      } else if (err instanceof NetworkError) {
+        setError("Unable to reach the server. Please check your connection.");
+      } else {
+        setError(err instanceof Error ? err.message : "Calculation failed. Please check your input.");
+      }
     } finally {
       setLoading(false);
     }
@@ -271,7 +278,8 @@ export default function TryPage() {
               <select
                 value={tzOffset}
                 onChange={e => setTzOffset(Number(e.target.value))}
-                className="w-full bg-slate-900/70 border border-slate-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                disabled={loading}
+                className="w-full bg-slate-900/70 border border-slate-600 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent disabled:opacity-60"
               >
                 {TIMEZONES.map(tz => (
                   <option key={tz.value} value={tz.value}>{tz.label}</option>

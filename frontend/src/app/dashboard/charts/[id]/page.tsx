@@ -28,16 +28,20 @@ export default function ChartDetailPage() {
 
   const isPaid = user?.subscription_tier !== "free";
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   async function handleDelete() {
     if (!chart) return;
     if (!window.confirm("Delete this chart? This cannot be undone.")) return;
     setDeleteLoading(true);
+    setDeleteError("");
     try {
       await api.charts.delete(chart.id);
       router.push("/dashboard");
-    } catch {
+    } catch (e: unknown) {
+      setDeleteError(e instanceof Error ? e.message : "Failed to delete chart");
       setDeleteLoading(false);
     }
   }
@@ -45,10 +49,11 @@ export default function ChartDetailPage() {
   async function handleDownloadPdf() {
     if (!chart) return;
     setPdfLoading(true);
+    setPdfError("");
     try {
       await api.charts.downloadPdf(chart.id);
-    } catch {
-      // silent — browser console will show fetch error if any
+    } catch (e: unknown) {
+      setPdfError(e instanceof Error ? e.message : "Download failed. Please try again.");
     } finally {
       setPdfLoading(false);
     }
@@ -90,29 +95,37 @@ export default function ChartDetailPage() {
               {chart.is_male ? "Male" : "Female"}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            {isPaid && (
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-2">
+              {isPaid && (
+                <button
+                  onClick={handleDownloadPdf}
+                  disabled={pdfLoading}
+                  className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 border border-slate-200 hover:border-violet-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {pdfLoading
+                    ? <Loader2 className="w-4 h-4 animate-spin" />
+                    : <Download className="w-4 h-4" />}
+                  Download PDF
+                </button>
+              )}
               <button
-                onClick={handleDownloadPdf}
-                disabled={pdfLoading}
-                className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-violet-600 border border-slate-200 hover:border-violet-300 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                onClick={handleDelete}
+                disabled={deleteLoading}
+                className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
               >
-                {pdfLoading
+                {deleteLoading
                   ? <Loader2 className="w-4 h-4 animate-spin" />
-                  : <Download className="w-4 h-4" />}
-                Download PDF
+                  : <Trash2 className="w-4 h-4" />}
+                Delete
               </button>
+            </div>
+            {pdfError && (
+              <p className="text-red-500 text-xs text-right">{pdfError}</p>
             )}
-            <button
-              onClick={handleDelete}
-              disabled={deleteLoading}
-              className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-red-500 border border-slate-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
-            >
-              {deleteLoading
-                ? <Loader2 className="w-4 h-4 animate-spin" />
-                : <Trash2 className="w-4 h-4" />}
-              Delete
-            </button>
+            {deleteError && (
+              <p className="text-red-500 text-xs text-right">{deleteError}</p>
+            )}
           </div>
         </div>
         <p className="text-slate-400 text-sm mt-1">

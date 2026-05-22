@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Loader2, Lock, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
+import { NetworkError, getErrorMessage } from "@/lib/errors";
 import { READING_TYPE_LABELS } from "@/lib/constants";
 import type { ReadingResponse, ReadingType } from "@/lib/types";
 
@@ -17,15 +18,19 @@ const POLL_INTERVAL_MS = 3000;
 function PaywallBanner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isNetworkError, setIsNetworkError] = useState(false);
 
   async function handleUnlock() {
     setLoading(true);
     setError("");
+    setIsNetworkError(false);
     try {
       const { url } = await api.payments.createCheckoutSession();
       window.location.href = url;
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      const isNetwork = e instanceof NetworkError;
+      setIsNetworkError(isNetwork);
+      setError(getErrorMessage(e));
       setLoading(false);
     }
   }
@@ -51,7 +56,11 @@ function PaywallBanner() {
         {loading ? "Redirecting…" : "Unlock full report — $9.99"}
       </button>
       <p className="text-xs text-slate-400 mt-3">One-time payment · Secure checkout via Stripe</p>
-      {error && <p className="text-red-400 text-sm mt-3">{error}</p>}
+      {error && (
+        <p className={`text-sm mt-3 ${isNetworkError ? "text-slate-500" : "text-red-400"}`}>
+          {error}
+        </p>
+      )}
     </div>
   );
 }

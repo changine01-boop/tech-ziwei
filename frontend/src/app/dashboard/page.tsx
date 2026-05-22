@@ -1,26 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Plus, Calendar, User, ChevronRight, Loader2 } from "lucide-react";
+import { Plus, Calendar, ChevronRight, Loader2, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
+import { getErrorMessage } from "@/lib/errors";
 import { BRANCHES, STEMS, WU_XING_JU_LABELS } from "@/lib/constants";
 import type { ChartResponse } from "@/lib/types";
 
 export default function DashboardPage() {
   const [charts, setCharts] = useState<ChartResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
+  const loadCharts = useCallback(() => {
+    setLoading(true);
+    setError("");
     api.charts.list()
       .then(setCharts)
+      .catch((e: unknown) => setError(getErrorMessage(e)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadCharts();
+  }, [loadCharts]);
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-40">
         <Loader2 className="w-5 h-5 animate-spin text-violet-500" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-40 gap-4 text-center">
+        <p className="text-slate-500 text-sm">{error}</p>
+        <button
+          onClick={loadCharts}
+          className="inline-flex items-center gap-2 text-sm text-violet-600 hover:text-violet-500 border border-violet-200 hover:border-violet-400 px-4 py-2 rounded-lg transition-colors"
+        >
+          <RefreshCw className="w-4 h-4" /> Retry
+        </button>
       </div>
     );
   }

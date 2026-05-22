@@ -4,6 +4,7 @@ import type {
   ReadingResponse, ReadingType,
   TokenResponse, UserResponse,
 } from "./types";
+import { NetworkError, PaymentRequiredError, RateLimitError } from "./errors";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -23,12 +24,32 @@ async function request<T>(
   };
   if (tok) headers["Authorization"] = `Bearer ${tok}`;
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...options, headers });
+  } catch (e) {
+    if (e instanceof TypeError) {
+      throw new NetworkError();
+    }
+    throw e;
+  }
 
   if (res.status === 401) {
     localStorage.removeItem("tz_token");
     window.location.href = "/login";
     throw new Error("Unauthorized");
+  }
+
+  if (res.status === 402) {
+    throw new PaymentRequiredError();
+  }
+
+  if (res.status === 429) {
+    throw new RateLimitError();
+  }
+
+  if (res.status >= 500) {
+    throw new Error("Server error — please try again.");
   }
 
   if (!res.ok) {

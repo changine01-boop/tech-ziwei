@@ -27,6 +27,18 @@ export default function NewChartPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!time) {
+      setError("Birth time is required");
+      return;
+    }
+
+    const today = new Date().toISOString().split("T")[0];
+    if (date > today) {
+      setError("Date of birth cannot be in the future");
+      return;
+    }
+
     setLoading(true);
     try {
       const chart = await api.charts.create({

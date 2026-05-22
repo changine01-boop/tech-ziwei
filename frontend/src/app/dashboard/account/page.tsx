@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, CheckCircle2, Lock, BarChart3, Calendar, Mail } from "lucide-react";
 import { api } from "@/lib/api";
+import { RateLimitError, NetworkError } from "@/lib/errors";
 import { useAuth } from "@/contexts/AuthContext";
 import type { ChartResponse } from "@/lib/types";
 
@@ -38,7 +39,13 @@ export default function AccountPage() {
       const { url } = await api.payments.createCheckoutSession();
       window.location.href = url;
     } catch (e: unknown) {
-      setUpgradeError(e instanceof Error ? e.message : "Something went wrong");
+      if (e instanceof RateLimitError) {
+        setUpgradeError("Too many requests — please wait.");
+      } else if (e instanceof NetworkError) {
+        setUpgradeError("Unable to reach server.");
+      } else {
+        setUpgradeError(e instanceof Error ? e.message : "Something went wrong");
+      }
       setUpgradeLoading(false);
     }
   }

@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -6,6 +8,8 @@ from tech_ziwei.models.user import User
 from tech_ziwei.services.payment import create_checkout_session, verify_webhook
 from tech_ziwei.services.user import upgrade_to_basic
 from .deps import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/payments", tags=["payments"])
 
@@ -33,4 +37,7 @@ async def stripe_webhook(
     user_id = verify_webhook(payload, sig)
     if user_id:
         await upgrade_to_basic(db, user_id)
+        logger.info("Upgraded user %s via Stripe webhook", user_id)
+    else:
+        logger.debug("Stripe webhook event not actionable (no user_id resolved)")
     return {"received": True}

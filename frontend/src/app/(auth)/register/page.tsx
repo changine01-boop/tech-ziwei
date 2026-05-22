@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { RateLimitError, NetworkError, getErrorMessage } from "@/lib/errors";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -12,13 +13,16 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [errorType, setErrorType] = useState<"rate-limit" | "network" | "general" | null>(null);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+    setErrorType(null);
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
+      setErrorType("general");
       return;
     }
     setLoading(true);
@@ -27,11 +31,25 @@ export default function RegisterPage() {
       await login(email, password);
       router.push("/dashboard/new");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      if (err instanceof RateLimitError) {
+        setErrorType("rate-limit");
+      } else if (err instanceof NetworkError) {
+        setErrorType("network");
+      } else {
+        setErrorType("general");
+      }
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   }
+
+  const errorClass =
+    errorType === "rate-limit"
+      ? "bg-amber-900/40 border border-amber-600 text-amber-300 text-sm rounded-lg px-4 py-3"
+      : errorType === "network"
+      ? "bg-slate-800/80 border border-slate-600 text-slate-300 text-sm rounded-lg px-4 py-3"
+      : "bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3";
 
   return (
     <div className="w-full max-w-sm">
@@ -40,7 +58,7 @@ export default function RegisterPage() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-lg px-4 py-3">
+          <div className={errorClass}>
             {error}
           </div>
         )}
@@ -51,7 +69,8 @@ export default function RegisterPage() {
             value={email}
             onChange={e => setEmail(e.target.value)}
             required
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            disabled={loading}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
             placeholder="you@example.com"
           />
         </div>
@@ -63,7 +82,8 @@ export default function RegisterPage() {
             onChange={e => setPassword(e.target.value)}
             required
             minLength={8}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500"
+            disabled={loading}
+            className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-violet-500 disabled:opacity-60"
             placeholder="Min. 8 characters"
           />
         </div>

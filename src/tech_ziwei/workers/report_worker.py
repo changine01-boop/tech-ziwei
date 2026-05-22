@@ -1,10 +1,13 @@
 """Celery task: generate an AI reading and persist it to the database."""
 
 import asyncio
+import logging
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy import select
+
+logger = logging.getLogger(__name__)
 
 from tech_ziwei.config import settings
 from tech_ziwei.models.chart import Chart
@@ -43,9 +46,14 @@ async def _run(reading_id: str) -> None:
             reading.content = content
             reading.status = ReadingStatus.COMPLETE
             reading.completed_at = datetime.now(timezone.utc)
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                "Reading generation failed for reading_id=%s: %s",
+                reading_id,
+                exc,
+            )
             reading.status = ReadingStatus.FAILED
-            raise
+            raise  # let Celery handle retry
         finally:
             await db.commit()
 
