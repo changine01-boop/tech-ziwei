@@ -1,5 +1,5 @@
 import type { NextConfig } from "next";
-// https://nextjs.org/docs/app/api-reference/config/next-config-js
+// https://nextjs.org/docs/app/api-reference/config/next-config-js/headers
 
 const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
