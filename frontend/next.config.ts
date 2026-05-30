@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 // https://nextjs.org/docs/app/api-reference/config/next-config-js
 
-const securityHeaders = [
+const securityHeaders = (apiUrl: string) => [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "X-XSS-Protection", value: "1; mode=block" },
@@ -15,7 +15,7 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: https:",
-      "connect-src 'self' https://api.stripe.com",
+      `connect-src 'self' https://api.stripe.com ${apiUrl}`,
       "frame-src https://js.stripe.com https://hooks.stripe.com",
       "object-src 'none'",
       "base-uri 'self'",
@@ -23,12 +23,14 @@ const securityHeaders = [
   },
 ];
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
       {
         source: "/(.*)",
-        headers: securityHeaders,
+        headers: securityHeaders(apiUrl),
       },
     ];
   },
