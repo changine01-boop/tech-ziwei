@@ -32,6 +32,7 @@ dependencies = [
     "httpx>=0.27.0",
     "python-dotenv>=1.0.0",
     "lunardate>=0.2.0",
+    "iztro-py>=0.3.4",
     # Payments
     "stripe>=15.0.0",
     # PDF
