@@ -8,6 +8,7 @@ class ChartRequest(BaseModel):
     birth_time: time
     is_male: bool
     timezone_offset: float = Field(default=8.0, ge=-12, le=14)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
 
 class StarPlacement(BaseModel):

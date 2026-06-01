@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, time
+from datetime import date, time, timedelta
 
 from .constants import Branch, Stem, WuXingJu, BRANCHES, STEMS
 from .lunar_calendar import LunarDate
@@ -18,7 +18,9 @@ class BirthData:
     gregorian_date: date
     birth_time: time
     is_male: bool
-    timezone_offset: float = 8.0  # hours ahead of UTC; default CST
+    timezone_offset: float = 8.0   # hours ahead of UTC; default CST (UTC+8)
+    longitude: float | None = None  # geographic longitude in degrees E (positive) / W (negative)
+                                    # None → no true-solar-time correction applied
 
 
 @dataclass
@@ -56,7 +58,7 @@ class Chart:
         return [s for s, b in self.star_placements.items() if b == branch]
 
     def mutagens(self) -> dict[str, str]:
-        """Return {star_name: mutagen} for every star that carries a 四化."""
+        """Return {star_name: mutagen_type} for every star that carries a 四化."""
         return {s.name: s.mutagen for s in self.star_details if s.mutagen}
 
     def summary(self) -> str:
@@ -81,42 +83,79 @@ class Chart:
         return "\n".join(lines)
 
 
+def _apply_true_solar_time(
+    clock_time: time,
+    longitude: float,
+    timezone_offset: float,
+) -> time:
+    """
+    Adjust clock time to true solar time (真太陽時).
+
+    Formula:
+        standard_meridian  = timezone_offset × 15°
+        correction_minutes = (longitude − standard_meridian) × 4 min/°
+        true_solar_time    = clock_time + correction_minutes
+
+    Example — Taipei (121.5°E, CST UTC+8):
+        standard_meridian = 8 × 15 = 120°
+        correction = (121.5 − 120) × 4 = +6 min
+        08:55 → 09:01  (crosses 辰/巳 boundary)
+    """
+    standard_meridian = timezone_offset * 15.0
+    correction_minutes = (longitude - standard_meridian) * 4.0
+    total_minutes = clock_time.hour * 60 + clock_time.minute + round(correction_minutes)
+    total_minutes = total_minutes % (24 * 60)  # wrap around midnight
+    return time(total_minutes // 60, total_minutes % 60)
+
+
 def calculate(birth: BirthData) -> Chart:
     """
     Calculate a full Zi Wei Dou Shu chart.
 
-    Star placement is delegated entirely to iztro-py (the iztro_adapter module).
-    The previous stars.py placement algorithm is no longer called anywhere in
-    this function.  Lunar calendar, palace stems, and major periods continue
-    to use our own engine modules.
+    True-solar-time correction (真太陽時):
+        If birth.longitude is provided, the raw birth_time is adjusted
+        BEFORE the time-branch (時辰) index is computed.  The corrected
+        time is then forwarded to iztro_adapter — no second correction
+        is applied there.
+
+    Star placement:
+        Delegated entirely to iztro_adapter (iztro-py).
+        stars.py place_major_stars() is NOT called anywhere in this function.
     """
-    # ── Step 1: iztro-py handles star placement, lunar date, 五行局 ───────
-    # Pass birth_time already in true solar time; adapter does NOT redo
-    # longitude correction (that is the caller's responsibility upstream).
+    # ── Step 1: Apply true-solar-time correction if longitude is supplied ──
+    if birth.longitude is not None:
+        corrected_time = _apply_true_solar_time(
+            birth.birth_time, birth.longitude, birth.timezone_offset
+        )
+    else:
+        corrected_time = birth.birth_time
+
+    # ── Step 2: iztro-py — star placement, lunar date, 五行局 ──────────────
+    # corrected_time is passed; adapter does NOT redo longitude correction.
     iztro_data = build_iztro_chart(
         birth.gregorian_date,
-        birth.birth_time,
+        corrected_time,
         birth.is_male,
     )
 
-    # ── Step 2: Reconstruct typed values for the Chart dataclass ──────────
+    # ── Step 3: Reconstruct typed values for Chart dataclass ───────────────
     lunar = LunarDate(
         year=iztro_data.lunar_year,
         month=iztro_data.lunar_month,
         day=iztro_data.lunar_day,
         is_leap_month=iztro_data.is_leap_month,
     )
-    ys  = Stem(iztro_data.year_stem)
-    yb  = Branch(iztro_data.year_branch)
-    hb  = hour_branch(birth.birth_time.hour, birth.birth_time.minute)
+    ys   = Stem(iztro_data.year_stem)
+    yb   = Branch(iztro_data.year_branch)
+    hb   = hour_branch(corrected_time.hour, corrected_time.minute)
     ming = Branch(iztro_data.ming_branch)
     ju   = WuXingJu(iztro_data.wu_xing_ju)
 
-    # ── Step 3: Build palace structure (stem/branch names; no stars yet) ──
+    # ── Step 4: Palace structure (stem/branch names; stars attached below) ─
     palaces = build_palaces(ming, lunar.year)
 
-    # ── Step 4: Attach iztro-py star placements to palace objects ─────────
-    # stars.py place_major_stars() is NOT called; iztro_data.star_placements
+    # ── Step 5: Attach iztro-py star placements ────────────────────────────
+    # stars.py place_major_stars() is NOT called.  iztro_data.star_placements
     # is the sole source of truth for star locations.
     star_placements: dict[str, Branch] = {
         name: Branch(b) for name, b in iztro_data.star_placements.items()
@@ -124,7 +163,7 @@ def calculate(birth: BirthData) -> Chart:
     for star, branch in star_placements.items():
         palaces[branch].stars.append(star)
 
-    # ── Step 5: Major periods (our own engine; matches adapter's internal calc) ──
+    # ── Step 6: Major periods (our engine; matches adapter's internal calc) ─
     periods = major_periods(
         ming=ming,
         ju=ju,

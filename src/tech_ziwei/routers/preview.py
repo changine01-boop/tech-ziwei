@@ -102,6 +102,7 @@ class PreviewRequest(BaseModel):
     birth_time: time
     is_male: bool
     timezone_offset: float = Field(default=-5.0, ge=-12, le=14)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
 
 
 class PreviewResponse(BaseModel):
@@ -123,6 +124,7 @@ async def preview(req: PreviewRequest) -> PreviewResponse:
             birth_time=req.birth_time,
             is_male=req.is_male,
             timezone_offset=req.timezone_offset,
+            longitude=req.longitude,
         )
         chart = calculate(birth)
     except Exception as exc:

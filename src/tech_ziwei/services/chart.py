@@ -36,7 +36,12 @@ def _chart_from_result(result, user_id: str, req: ChartRequest) -> Chart:
             }
             for p in result.major_period_list
         ],
-        mutagens={s.name: s.mutagen for s in result.star_details if s.mutagen},
+        # Store type + branch so serializer can show palace for minor stars too
+        mutagens={
+            s.name: {"type": s.mutagen, "branch": s.palace_branch}
+            for s in result.star_details
+            if s.mutagen
+        },
     )
 
 
@@ -46,6 +51,7 @@ async def create_chart(db: AsyncSession, user_id: str, req: ChartRequest) -> Cha
         birth_time=req.birth_time,
         is_male=req.is_male,
         timezone_offset=req.timezone_offset,
+        longitude=req.longitude,
     )
     result = calculate(birth)
     chart = _chart_from_result(result, user_id, req)

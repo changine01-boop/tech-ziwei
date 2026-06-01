@@ -109,8 +109,10 @@ def chart_to_context(chart: Chart) -> str:
         ]
 
     # Year mutagen (四化) — from iztro-py, stored in chart.mutagens
-    mutagens: dict[str, str] = getattr(chart, "mutagens", None) or {}
-    if mutagens:
+    # Format: {star_name: {"type": "祿"|"權"|"科"|"忌", "branch": int}}
+    # (minor stars such as 文曲/文昌/左輔/右弼 carry branch so palace is always shown)
+    raw_mutagens: dict = getattr(chart, "mutagens", None) or {}
+    if raw_mutagens:
         _MUTAGEN_LABELS = {
             "祿": "祿 (Abundance Flow)    ",
             "權": "權 (Power Activation)  ",
@@ -118,12 +120,17 @@ def chart_to_context(chart: Chart) -> str:
             "忌": "忌 (Friction / Growth)  ",
         }
         lines += ["", "=== YEAR MUTAGEN (四化) ==="]
-        star_branch_map = {name: branch for name, branch in chart.star_placements.items()}
         for mutagen_type in ("祿", "權", "科", "忌"):
-            for star, mt in mutagens.items():
+            for star, info in raw_mutagens.items():
+                # Support both dict format {type, branch} and legacy plain-string format
+                if isinstance(info, dict):
+                    mt = info.get("type")
+                    branch_idx = info.get("branch")
+                else:
+                    mt = info
+                    branch_idx = chart.star_placements.get(star)
                 if mt != mutagen_type:
                     continue
-                branch_idx = star_branch_map.get(star)
                 if branch_idx is not None:
                     offset = (ming - branch_idx + 12) % 12
                     palace = PALACE_NAMES[offset]
@@ -133,7 +140,7 @@ def chart_to_context(chart: Chart) -> str:
                         f"{star} → {palace} [{domain}]"
                     )
                 else:
-                    lines.append(f"  {_MUTAGEN_LABELS.get(mutagen_type, mutagen_type)}: {star} (minor star)")
+                    lines.append(f"  {_MUTAGEN_LABELS.get(mutagen_type, mutagen_type)}: {star}")
 
     return "\n".join(lines)
 
