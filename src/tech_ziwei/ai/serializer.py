@@ -1,10 +1,15 @@
 """Convert a Chart ORM model into a structured, prompt-ready context string."""
 
+from __future__ import annotations
+
 from datetime import date
+from typing import TYPE_CHECKING
 
 from tech_ziwei.engine.constants import BRANCHES, STEMS, PALACE_NAMES, WuXingJu
-from tech_ziwei.models.chart import Chart
 from .prompts import STAR_ARCHETYPES, PALACE_DOMAINS
+
+if TYPE_CHECKING:
+    from tech_ziwei.models.chart import Chart
 
 _WU_XING_JU_NAMES: dict[int, str] = {
     2: "Water-2 (水二局) — fluid, adaptive, fast-cycle energy",
@@ -102,6 +107,33 @@ def chart_to_context(chart: Chart) -> str:
             f"  Domain     : {PALACE_DOMAINS.get(period_palace, '')}",
             f"  Stars      : {', '.join(period_stars) or '—'}",
         ]
+
+    # Year mutagen (四化) — from iztro-py, stored in chart.mutagens
+    mutagens: dict[str, str] = getattr(chart, "mutagens", None) or {}
+    if mutagens:
+        _MUTAGEN_LABELS = {
+            "祿": "祿 (Abundance Flow)    ",
+            "權": "權 (Power Activation)  ",
+            "科": "科 (Scholarly Clarity)  ",
+            "忌": "忌 (Friction / Growth)  ",
+        }
+        lines += ["", "=== YEAR MUTAGEN (四化) ==="]
+        star_branch_map = {name: branch for name, branch in chart.star_placements.items()}
+        for mutagen_type in ("祿", "權", "科", "忌"):
+            for star, mt in mutagens.items():
+                if mt != mutagen_type:
+                    continue
+                branch_idx = star_branch_map.get(star)
+                if branch_idx is not None:
+                    offset = (ming - branch_idx + 12) % 12
+                    palace = PALACE_NAMES[offset]
+                    domain = PALACE_DOMAINS.get(palace, "")
+                    lines.append(
+                        f"  {_MUTAGEN_LABELS.get(mutagen_type, mutagen_type)}: "
+                        f"{star} → {palace} [{domain}]"
+                    )
+                else:
+                    lines.append(f"  {_MUTAGEN_LABELS.get(mutagen_type, mutagen_type)}: {star} (minor star)")
 
     return "\n".join(lines)
 

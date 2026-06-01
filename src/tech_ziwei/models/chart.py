@@ -35,6 +35,8 @@ class Chart(Base, TimestampMixin):
     year_branch: Mapped[int] = mapped_column(Integer, nullable=False)
     star_placements: Mapped[dict] = mapped_column(JSONB, nullable=False)
     major_periods: Mapped[list] = mapped_column(JSONB, nullable=False)
+    # {star_name: "祿"|"權"|"科"|"忌"} — populated by iztro-py adapter
+    mutagens: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict, server_default="{}")
 
     user: Mapped["User"] = relationship(back_populates="charts")  # type: ignore[name-defined]
     readings: Mapped[list["Reading"]] = relationship(back_populates="chart", lazy="raise")  # type: ignore[name-defined]

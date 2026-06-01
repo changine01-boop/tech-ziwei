@@ -36,6 +36,7 @@ def _chart_from_result(result, user_id: str, req: ChartRequest) -> Chart:
             }
             for p in result.major_period_list
         ],
+        mutagens={s.name: s.mutagen for s in result.star_details if s.mutagen},
     )
 
 
