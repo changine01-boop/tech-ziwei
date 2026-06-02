@@ -9,10 +9,12 @@ from .base import TimestampMixin, new_uuid
 
 
 class ReadingType(str, enum.Enum):
-    CORE = "core"           # Core personality (命宮 + major stars)
-    RELATIONSHIP = "relationship"  # 夫妻宮, 交友宮
-    CAREER = "career"       # 官祿宮, 事業
-    ANNUAL = "annual"       # 流年 overlay
+    CORE = "core"                             # Core personality (命宮 + major stars)
+    RELATIONSHIP = "relationship"             # 夫妻宮, 交友宮
+    CAREER = "career"                         # 官祿宮, 事業
+    ANNUAL = "annual"                         # 流年 overlay
+    SHADOW_WORK = "shadow_work"               # Module 4 — 化忌-driven friction section
+    POSITIVE_CATALYSTS = "positive_catalysts" # Module 5 — 化祿/權/科 unified section
 
 
 class ReadingStatus(str, enum.Enum):
