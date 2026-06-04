@@ -9,10 +9,13 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # Copy source and install the package
 COPY src/ src/
-RUN pip3 install --no-cache-dir -e .
+COPY alembic/ alembic/
+COPY alembic.ini .
+COPY entrypoint.sh .
+RUN pip3 install --no-cache-dir -e . && chmod +x /app/entrypoint.sh
 
 ENV PYTHONPATH=/app/src
 
 EXPOSE 8000
 
-CMD ["uvicorn", "tech_ziwei.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/app/entrypoint.sh"]
